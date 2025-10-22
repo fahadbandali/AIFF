@@ -3,12 +3,13 @@
 ## ADDED Requirements
 
 ### Requirement: Hero Section Display
-The system SHALL display a hero section with the application name, tagline, and primary call-to-action.
+The system SHALL display a hero section with the application name "AIFF", tagline, and primary call-to-action.
 
 #### Scenario: User visits landing page
 - **WHEN** user navigates to the root URL (`/`)
-- **THEN** the hero section is displayed with application branding
-- **AND** a prominent "Sign In" button is visible
+- **THEN** the hero section is displayed with "AIFF" branding
+- **AND** a prominent "Get Started" button is visible
+- **AND** a descriptive tagline explains the app's purpose
 
 #### Scenario: User views on mobile device
 - **WHEN** user accesses the landing page on a mobile device
@@ -33,17 +34,17 @@ The system SHALL display three core features with descriptions to communicate va
 - **THEN** feature cards stack vertically
 
 ### Requirement: Primary Call-to-Action
-The system SHALL provide a clear "Sign In" button that initiates user authentication flow.
+The system SHALL provide a clear "Get Started" button that navigates users to the dashboard.
 
-#### Scenario: User clicks Sign In button
-- **WHEN** user clicks the "Sign In" button
-- **THEN** user is navigated to the authentication page
-- **AND** the current landing page context is preserved
+#### Scenario: User clicks Get Started button
+- **WHEN** user clicks the "Get Started" button
+- **THEN** user is navigated to the dashboard page (`/dashboard`)
+- **AND** the navigation occurs without page reload (client-side routing)
 
 #### Scenario: Button visibility
 - **WHEN** user scrolls through the landing page
-- **THEN** the "Sign In" button remains accessible
-- **AND** maintains consistent styling throughout the page
+- **THEN** the "Get Started" button remains accessible in the hero section
+- **AND** maintains consistent DaisyUI button styling
 
 ### Requirement: Responsive Design
 The system SHALL provide a fully responsive layout that adapts to different screen sizes and orientations.

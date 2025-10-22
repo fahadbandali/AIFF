@@ -2,7 +2,12 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { initDatabase } from "./services/database";
+import { initPlaidClient } from "./services/plaid";
+import { validateEncryptionKey } from "./services/encryption";
 import healthRouter from "./routes/health";
+import plaidRouter from "./routes/plaid";
+import accountsRouter from "./routes/accounts";
+import { rateLimit } from "./middleware/rateLimit";
 
 // Load environment variables
 dotenv.config();
@@ -25,8 +30,22 @@ app.use(express.json());
 // Initialize database
 await initDatabase();
 
+// Validate encryption key and initialize Plaid client
+try {
+  validateEncryptionKey();
+  initPlaidClient();
+} catch (error) {
+  console.error("❌ Initialization error:", (error as Error).message);
+  if (process.env.NODE_ENV === "production") {
+    process.exit(1);
+  }
+  console.warn("⚠️  Continuing without Plaid (development mode only)");
+}
+
 // Routes
 app.use("/api/health", healthRouter);
+app.use("/api/plaid", rateLimit(10, 60000), plaidRouter);
+app.use("/api/accounts", accountsRouter);
 
 // Basic error handler
 app.use(
