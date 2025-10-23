@@ -7,6 +7,10 @@ import { validateEncryptionKey } from "./services/encryption";
 import healthRouter from "./routes/health";
 import plaidRouter from "./routes/plaid";
 import accountsRouter from "./routes/accounts";
+import transactionsRouter from "./routes/transactions";
+import categoriesRouter from "./routes/categories";
+import budgetsRouter from "./routes/budgets";
+import goalsRouter from "./routes/goals";
 import { rateLimit } from "./middleware/rateLimit";
 
 // Load environment variables
@@ -46,6 +50,10 @@ try {
 app.use("/api/health", healthRouter);
 app.use("/api/plaid", rateLimit(10, 60000), plaidRouter);
 app.use("/api/accounts", accountsRouter);
+app.use("/api/transactions", rateLimit(100, 60000), transactionsRouter);
+app.use("/api/categories", categoriesRouter);
+app.use("/api/budgets", budgetsRouter);
+app.use("/api/goals", goalsRouter);
 
 // Basic error handler
 app.use(

@@ -22,13 +22,17 @@ interface Account {
 
 interface Transaction {
   id: string;
-  plaid_transaction_id: string | null;
+  plaid_transaction_id: string;
   account_id: string;
-  amount: number;
   date: string;
+  authorized_date: string | null;
+  amount: number; // negative for credits, positive for debits
   name: string;
+  merchant_name: string | null;
   category_id: string;
-  pending: boolean;
+  is_tagged: boolean; // false until user confirms category
+  is_pending: boolean;
+  payment_channel: string; // 'online', 'in store', etc.
   created_at: string;
   updated_at: string;
 }
@@ -37,15 +41,30 @@ interface Category {
   id: string;
   name: string;
   parent_id: string | null;
+  color: string; // hex color for charts
+  icon: string; // icon name
+  is_system: boolean; // true for default categories
   created_at: string;
+  updated_at: string;
 }
 
 interface Budget {
   id: string;
-  category_id: string;
+  category_id: string | null; // null = applies to all categories
   amount: number;
-  period: string;
-  start_date: string;
+  period: "daily" | "weekly" | "monthly" | "yearly";
+  start_date: string; // ISO date
+  end_date: string | null; // MUST NOT be null if category_id is null
+  created_at: string;
+  updated_at: string;
+}
+
+interface Goal {
+  id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  target_date: string; // ISO date
   created_at: string;
   updated_at: string;
 }
@@ -56,8 +75,10 @@ interface PlaidItem {
   access_token: string;
   institution_id: string;
   institution_name: string;
+  transactions_cursor: string | null; // for Plaid Transactions Sync API
+  last_sync: string | null; // ISO timestamp of last successful sync
   created_at: string;
-  last_sync: string;
+  updated_at: string;
 }
 
 interface Database {
@@ -65,64 +86,101 @@ interface Database {
   transactions: Transaction[];
   categories: Category[];
   budgets: Budget[];
+  goals: Goal[];
   plaid_items: PlaidItem[];
 }
 
-// Default categories
+// Default categories with colors and icons
 const defaultCategories: Category[] = [
   {
-    id: "cat-1",
+    id: "cat-income",
     name: "Income",
     parent_id: null,
+    color: "#10b981",
+    icon: "💰",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "cat-2",
+    id: "cat-housing",
     name: "Housing",
     parent_id: null,
+    color: "#8b5cf6",
+    icon: "🏠",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "cat-3",
+    id: "cat-transportation",
     name: "Transportation",
     parent_id: null,
+    color: "#3b82f6",
+    icon: "🚗",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "cat-4",
+    id: "cat-food",
     name: "Food",
     parent_id: null,
+    color: "#f59e0b",
+    icon: "🍔",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "cat-5",
+    id: "cat-entertainment",
     name: "Entertainment",
     parent_id: null,
+    color: "#ec4899",
+    icon: "🎬",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "cat-6",
+    id: "cat-shopping",
     name: "Shopping",
     parent_id: null,
+    color: "#06b6d4",
+    icon: "🛍️",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "cat-7",
+    id: "cat-healthcare",
     name: "Healthcare",
     parent_id: null,
+    color: "#ef4444",
+    icon: "🏥",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "cat-8",
+    id: "cat-financial",
     name: "Financial",
     parent_id: null,
+    color: "#6366f1",
+    icon: "💳",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
   {
-    id: "cat-9",
+    id: "cat-uncategorized",
     name: "Uncategorized",
     parent_id: null,
+    color: "#6b7280",
+    icon: "❓",
+    is_system: true,
     created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   },
 ];
 
@@ -132,6 +190,7 @@ const defaultData: Database = {
   transactions: [],
   categories: defaultCategories,
   budgets: [],
+  goals: [],
   plaid_items: [],
 };
 
@@ -173,4 +232,12 @@ export function getDb(): Low<Database> {
   return db;
 }
 
-export type { Database, Account, Transaction, Category, Budget, PlaidItem };
+export type {
+  Database,
+  Account,
+  Transaction,
+  Category,
+  Budget,
+  Goal,
+  PlaidItem,
+};

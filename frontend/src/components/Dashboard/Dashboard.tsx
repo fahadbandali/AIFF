@@ -99,12 +99,24 @@ export function Dashboard() {
 
           <div className="stat bg-base-200 rounded-lg shadow">
             <div className="stat-title">Quick Actions</div>
-            <div className="stat-actions">
+            <div className="stat-actions flex flex-wrap gap-2">
               <button
                 className="btn btn-sm btn-primary"
+                onClick={() => navigate("/analytics")}
+              >
+                📊 Analytics
+              </button>
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={() => navigate("/goals")}
+              >
+                🎯 Goals
+              </button>
+              <button
+                className="btn btn-sm btn-outline"
                 onClick={() => navigate("/connect")}
               >
-                + Connect Account
+                + Connect
               </button>
             </div>
           </div>
@@ -144,11 +156,30 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Coming Soon Section */}
-        <div className="mt-8 text-center text-base-content/60">
-          <p className="text-sm">
-            More features coming soon: Transaction history, budgeting, and
-            analytics
+        {/* Analytics Link */}
+        <div className="mt-8 text-center">
+          <button
+            className="btn btn-lg btn-primary"
+            onClick={() => navigate("/analytics")}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-6 h-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
+              />
+            </svg>
+            View Financial Analytics
+          </button>
+          <p className="text-sm text-base-content/60 mt-2">
+            Track spending, budgets, goals, and cash flow
           </p>
         </div>
       </div>

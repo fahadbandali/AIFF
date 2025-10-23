@@ -8,7 +8,7 @@ import {
 import { getDb } from "./database";
 import { encrypt, decrypt } from "./encryption";
 import { randomUUID } from "crypto";
-import type { PlaidItem, Account } from "./database";
+import type { PlaidItem, Account, Transaction } from "./database";
 
 let plaidClient: PlaidApi | null = null;
 
@@ -133,7 +133,7 @@ export async function exchangePublicToken(
     existingItem.access_token = encryptedToken;
     existingItem.institution_id = institutionId;
     existingItem.institution_name = institutionName;
-    existingItem.last_sync = new Date().toISOString();
+    existingItem.updated_at = new Date().toISOString();
     await db.write();
     return existingItem;
   }
@@ -145,8 +145,10 @@ export async function exchangePublicToken(
     access_token: encryptedToken,
     institution_id: institutionId,
     institution_name: institutionName,
+    transactions_cursor: null,
+    last_sync: null,
     created_at: new Date().toISOString(),
-    last_sync: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 
   db.data.plaid_items.push(newItem);
@@ -229,8 +231,8 @@ export async function syncAccounts(plaidItemId: string): Promise<Account[]> {
     }
   }
 
-  // Update last_sync timestamp
-  plaidItem.last_sync = new Date().toISOString();
+  // Update updated_at timestamp
+  plaidItem.updated_at = new Date().toISOString();
   await db.write();
 
   return storedAccounts;
@@ -254,4 +256,181 @@ export async function getAllAccounts(): Promise<
       institution_name: plaidItem?.institution_name || "Unknown",
     };
   });
+}
+
+/**
+ * Map Plaid category to system category
+ */
+function mapPlaidCategoryToSystem(plaidCategory: string[] | null): string {
+  if (!plaidCategory || plaidCategory.length === 0) {
+    return "cat-uncategorized";
+  }
+
+  const primaryCategory = plaidCategory[0].toLowerCase();
+
+  // Map to system categories
+  if (
+    primaryCategory.includes("income") ||
+    primaryCategory.includes("payment")
+  ) {
+    return "cat-income";
+  }
+  if (
+    primaryCategory.includes("rent") ||
+    primaryCategory.includes("mortgage")
+  ) {
+    return "cat-housing";
+  }
+  if (
+    primaryCategory.includes("transportation") ||
+    primaryCategory.includes("gas") ||
+    primaryCategory.includes("auto")
+  ) {
+    return "cat-transportation";
+  }
+  if (
+    primaryCategory.includes("food") ||
+    primaryCategory.includes("restaurants") ||
+    primaryCategory.includes("groceries")
+  ) {
+    return "cat-food";
+  }
+  if (
+    primaryCategory.includes("entertainment") ||
+    primaryCategory.includes("recreation")
+  ) {
+    return "cat-entertainment";
+  }
+  if (primaryCategory.includes("shops") || primaryCategory.includes("retail")) {
+    return "cat-shopping";
+  }
+  if (
+    primaryCategory.includes("healthcare") ||
+    primaryCategory.includes("medical")
+  ) {
+    return "cat-healthcare";
+  }
+  if (
+    primaryCategory.includes("bank") ||
+    primaryCategory.includes("transfer") ||
+    primaryCategory.includes("credit")
+  ) {
+    return "cat-financial";
+  }
+
+  return "cat-uncategorized";
+}
+
+/**
+ * Sync transactions from Plaid using Transactions Sync API
+ * @param plaidItemId - The ID of the PlaidItem in our database
+ * @returns Count of added, modified, and removed transactions
+ */
+export async function syncTransactions(plaidItemId: string): Promise<{
+  added: number;
+  modified: number;
+  removed: number;
+}> {
+  const client = getPlaidClient();
+  const db = getDb();
+
+  await db.read();
+
+  // Find the PlaidItem
+  const plaidItem = db.data.plaid_items.find((item) => item.id === plaidItemId);
+  if (!plaidItem) {
+    throw new Error("PlaidItem not found");
+  }
+
+  // Decrypt access token
+  const encryptionKey = process.env.PLAID_ENCRYPTION_KEY;
+  if (!encryptionKey) {
+    throw new Error("PLAID_ENCRYPTION_KEY not configured");
+  }
+
+  const accessToken = decrypt(plaidItem.access_token, encryptionKey);
+
+  let cursor = plaidItem.transactions_cursor || undefined;
+  let hasMore = true;
+  let addedCount = 0;
+  let modifiedCount = 0;
+  let removedCount = 0;
+
+  while (hasMore) {
+    const response = await client.transactionsSync({
+      access_token: accessToken,
+      cursor: cursor,
+    });
+
+    // Process added transactions
+    for (const tx of response.data.added) {
+      const transaction: Transaction = {
+        id: randomUUID(),
+        plaid_transaction_id: tx.transaction_id,
+        account_id:
+          db.data.accounts.find((acc) => acc.plaid_account_id === tx.account_id)
+            ?.id || "",
+        date: tx.date,
+        authorized_date: tx.authorized_date || null,
+        amount: tx.amount,
+        name: tx.name,
+        merchant_name: tx.merchant_name || null,
+        category_id: mapPlaidCategoryToSystem(tx.category),
+        is_tagged: false, // User needs to confirm category
+        is_pending: tx.pending,
+        payment_channel: tx.payment_channel || "other",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      db.data.transactions.push(transaction);
+      addedCount++;
+    }
+
+    // Process modified transactions
+    for (const tx of response.data.modified) {
+      const existingTransaction = db.data.transactions.find(
+        (t) => t.plaid_transaction_id === tx.transaction_id
+      );
+
+      if (existingTransaction) {
+        existingTransaction.date = tx.date;
+        existingTransaction.authorized_date = tx.authorized_date || null;
+        existingTransaction.amount = tx.amount;
+        existingTransaction.name = tx.name;
+        existingTransaction.merchant_name = tx.merchant_name || null;
+        existingTransaction.is_pending = tx.pending;
+        existingTransaction.payment_channel = tx.payment_channel || "other";
+        existingTransaction.updated_at = new Date().toISOString();
+        modifiedCount++;
+      }
+    }
+
+    // Process removed transactions
+    for (const removedTx of response.data.removed) {
+      const index = db.data.transactions.findIndex(
+        (t) => t.plaid_transaction_id === removedTx.transaction_id
+      );
+      if (index !== -1) {
+        db.data.transactions.splice(index, 1);
+        removedCount++;
+      }
+    }
+
+    hasMore = response.data.has_more;
+    cursor = response.data.next_cursor;
+  }
+
+  // Save cursor and last sync timestamp
+  plaidItem.transactions_cursor = cursor ?? null;
+  plaidItem.last_sync = new Date().toISOString();
+  plaidItem.updated_at = new Date().toISOString();
+
+  await db.write();
+
+  return {
+    added: addedCount,
+    modified: modifiedCount,
+    removed: removedCount,
+  };
 }

@@ -37,6 +37,111 @@ export interface AccountsResponse {
   accounts: Account[];
 }
 
+export interface Transaction {
+  id: string;
+  plaid_transaction_id: string;
+  account_id: string;
+  date: string;
+  authorized_date: string | null;
+  amount: number;
+  name: string;
+  merchant_name: string | null;
+  category_id: string;
+  is_tagged: boolean;
+  is_pending: boolean;
+  payment_channel: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TransactionsResponse {
+  transactions: Transaction[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  color: string;
+  icon: string;
+  is_system: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CategoriesResponse {
+  categories: Category[];
+}
+
+export interface Budget {
+  id: string;
+  category_id: string | null; // null = applies to all categories
+  amount: number;
+  period: "daily" | "weekly" | "monthly" | "yearly";
+  start_date: string;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BudgetsResponse {
+  budgets: Budget[];
+}
+
+export interface BudgetProgress {
+  budget: Budget;
+  spent: number;
+  remaining: number;
+  percentage: number;
+  over_budget: boolean;
+}
+
+export interface Goal {
+  id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  target_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GoalsResponse {
+  goals: Goal[];
+}
+
+export interface GoalEstimate {
+  goal: Goal;
+  remaining: number;
+  percentage: number;
+  completed: boolean;
+  days_until_target: number;
+  estimated_completion_date: string | null;
+  days_to_completion: number | null;
+  on_track: boolean;
+}
+
+export interface CashFlowStats {
+  income: number;
+  expenses: number;
+  net: number;
+  transaction_count: number;
+}
+
+export interface SyncTransactionsRequest {
+  plaid_item_id: string;
+}
+
+export interface SyncTransactionsResponse {
+  success: boolean;
+  transactions_added: number;
+  transactions_modified: number;
+  transactions_removed: number;
+}
+
 class ApiError extends Error {
   constructor(message: string, public status: number, public data?: any) {
     super(message);
@@ -82,10 +187,183 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+
+    syncTransactions: (
+      data: SyncTransactionsRequest
+    ): Promise<SyncTransactionsResponse> =>
+      fetchApi("/api/plaid/sync-transactions", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 
   accounts: {
     getAll: (): Promise<AccountsResponse> => fetchApi("/api/accounts"),
+  },
+
+  transactions: {
+    getAll: (params?: {
+      account_id?: string;
+      category_id?: string;
+      is_tagged?: boolean;
+      start_date?: string;
+      end_date?: string;
+      limit?: number;
+      offset?: number;
+    }): Promise<TransactionsResponse> => {
+      const queryParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            queryParams.append(key, String(value));
+          }
+        });
+      }
+      const queryString = queryParams.toString();
+      return fetchApi(
+        `/api/transactions${queryString ? `?${queryString}` : ""}`
+      );
+    },
+
+    getById: (id: string): Promise<{ transaction: Transaction }> =>
+      fetchApi(`/api/transactions/${id}`),
+
+    tag: (
+      id: string,
+      category_id: string
+    ): Promise<{ success: boolean; transaction: Transaction }> =>
+      fetchApi(`/api/transactions/${id}/tag`, {
+        method: "PATCH",
+        body: JSON.stringify({ category_id }),
+      }),
+
+    getCashFlowStats: (params?: {
+      start_date?: string;
+      end_date?: string;
+    }): Promise<CashFlowStats> => {
+      const queryParams = new URLSearchParams();
+      if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined) {
+            queryParams.append(key, String(value));
+          }
+        });
+      }
+      const queryString = queryParams.toString();
+      return fetchApi(
+        `/api/transactions/stats/cash-flow${
+          queryString ? `?${queryString}` : ""
+        }`
+      );
+    },
+  },
+
+  categories: {
+    getAll: (): Promise<CategoriesResponse> => fetchApi("/api/categories"),
+
+    getById: (id: string): Promise<{ category: Category }> =>
+      fetchApi(`/api/categories/${id}`),
+
+    create: (data: {
+      name: string;
+      parent_id?: string | null;
+      color: string;
+      icon: string;
+    }): Promise<{ success: boolean; category: Category }> =>
+      fetchApi("/api/categories", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
+
+  budgets: {
+    getAll: (): Promise<BudgetsResponse> => fetchApi("/api/budgets"),
+
+    getById: (id: string): Promise<{ budget: Budget }> =>
+      fetchApi(`/api/budgets/${id}`),
+
+    getProgress: (id: string): Promise<BudgetProgress> =>
+      fetchApi(`/api/budgets/${id}/progress`),
+
+    create: (data: {
+      category_id: string | null;
+      amount: number;
+      period: "daily" | "weekly" | "monthly" | "yearly";
+      start_date: string;
+      end_date?: string | null;
+    }): Promise<{ success: boolean; budget: Budget }> =>
+      fetchApi("/api/budgets", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (
+      id: string,
+      data: {
+        amount?: number;
+        period?: "daily" | "weekly" | "monthly" | "yearly";
+        start_date?: string;
+        end_date?: string | null;
+      }
+    ): Promise<{ success: boolean; budget: Budget }> =>
+      fetchApi(`/api/budgets/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    delete: (id: string): Promise<{ success: boolean; message: string }> =>
+      fetchApi(`/api/budgets/${id}`, {
+        method: "DELETE",
+      }),
+  },
+
+  goals: {
+    getAll: (): Promise<GoalsResponse> => fetchApi("/api/goals"),
+
+    getById: (id: string): Promise<{ goal: Goal }> =>
+      fetchApi(`/api/goals/${id}`),
+
+    getEstimate: (id: string): Promise<GoalEstimate> =>
+      fetchApi(`/api/goals/${id}/estimate`),
+
+    create: (data: {
+      name: string;
+      target_amount: number;
+      current_amount?: number;
+      target_date: string;
+    }): Promise<{ success: boolean; goal: Goal }> =>
+      fetchApi("/api/goals", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    update: (
+      id: string,
+      data: {
+        name?: string;
+        target_amount?: number;
+        current_amount?: number;
+        target_date?: string;
+      }
+    ): Promise<{ success: boolean; goal: Goal }> =>
+      fetchApi(`/api/goals/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
+
+    updateProgress: (
+      id: string,
+      current_amount: number
+    ): Promise<{ success: boolean; goal: Goal }> =>
+      fetchApi(`/api/goals/${id}/progress`, {
+        method: "PATCH",
+        body: JSON.stringify({ current_amount }),
+      }),
+
+    delete: (id: string): Promise<{ success: boolean; message: string }> =>
+      fetchApi(`/api/goals/${id}`, {
+        method: "DELETE",
+      }),
   },
 };
 
