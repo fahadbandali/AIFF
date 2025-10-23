@@ -113,6 +113,12 @@ export function Dashboard() {
                 🎯 Goals
               </button>
               <button
+                className="btn btn-sm btn-secondary"
+                onClick={() => navigate("/settings")}
+              >
+                ⚙️ Settings
+              </button>
+              <button
                 className="btn btn-sm btn-outline"
                 onClick={() => navigate("/connect")}
               >

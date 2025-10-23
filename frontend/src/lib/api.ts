@@ -142,6 +142,52 @@ export interface SyncTransactionsResponse {
   transactions_removed: number;
 }
 
+export interface Database {
+  accounts: Account[];
+  transactions: Transaction[];
+  categories: Category[];
+  budgets: Budget[];
+  goals: Goal[];
+  plaid_items: Array<{
+    id: string;
+    item_id: string;
+    access_token: string;
+    institution_id: string;
+    institution_name: string;
+    transactions_cursor: string | null;
+    last_sync?: string | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+}
+
+export type ImportStrategy = "replace" | "merge" | "append";
+
+export interface ImportRequest {
+  data: Database;
+  strategy: ImportStrategy;
+}
+
+export interface ImportResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface ValidateResponse {
+  valid: boolean;
+  message: string;
+  counts?: {
+    accounts: number;
+    transactions: number;
+    categories: number;
+    budgets: number;
+    goals: number;
+    plaid_items: number;
+  };
+  error?: string;
+  details?: any[];
+}
+
 class ApiError extends Error {
   constructor(message: string, public status: number, public data?: any) {
     super(message);
@@ -363,6 +409,65 @@ export const api = {
     delete: (id: string): Promise<{ success: boolean; message: string }> =>
       fetchApi(`/api/goals/${id}`, {
         method: "DELETE",
+      }),
+  },
+
+  data: {
+    /**
+     * Export entire database as JSON
+     * Downloads the file directly in the browser
+     */
+    export: async (): Promise<void> => {
+      const url = `${API_BASE_URL}/api/data/export`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new ApiError(
+          errorData.message || errorData.error || "Export failed",
+          response.status,
+          errorData
+        );
+      }
+
+      // Get filename from Content-Disposition header or use default
+      const contentDisposition = response.headers.get("Content-Disposition");
+      let filename = "finance-backup.json";
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) {
+          filename = match[1];
+        }
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+    },
+
+    /**
+     * Import database from JSON
+     */
+    import: (data: ImportRequest): Promise<ImportResponse> =>
+      fetchApi("/api/data/import", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    /**
+     * Validate database structure without importing
+     */
+    validate: (data: Database): Promise<ValidateResponse> =>
+      fetchApi("/api/data/validate", {
+        method: "POST",
+        body: JSON.stringify({ data }),
       }),
   },
 };

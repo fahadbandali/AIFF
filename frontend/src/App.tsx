@@ -5,6 +5,7 @@ import { Dashboard } from "./components/Dashboard/Dashboard";
 import AnalyticsDashboard from "./components/Analytics/AnalyticsDashboard";
 import { BudgetDashboard } from "./components/Budgets/BudgetDashboard";
 import GoalDashboard from "./components/Goals/GoalDashboard";
+import DataManagement from "./components/Settings/DataManagement";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/analytics" element={<AnalyticsDashboard />} />
         <Route path="/budgets" element={<BudgetDashboard />} />
         <Route path="/goals" element={<GoalDashboard />} />
+        <Route path="/settings" element={<DataManagement />} />
       </Routes>
     </div>
   );
