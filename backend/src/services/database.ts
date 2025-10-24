@@ -60,16 +60,6 @@ interface Budget {
   updated_at: string;
 }
 
-interface Goal {
-  id: string;
-  name: string;
-  target_amount: number;
-  current_amount: number;
-  target_date: string; // ISO date
-  created_at: string;
-  updated_at: string;
-}
-
 interface PlaidItem {
   id: string;
   item_id: string;
@@ -87,7 +77,6 @@ interface Database {
   transactions: Transaction[];
   categories: Category[];
   budgets: Budget[];
-  goals: Goal[];
   plaid_items: PlaidItem[];
 }
 
@@ -166,16 +155,6 @@ const BudgetSchema = z
     }
   );
 
-const GoalSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  target_amount: z.number().positive(),
-  current_amount: z.number().min(0),
-  target_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
-});
-
 const PlaidItemSchema = z.object({
   id: z.string(),
   item_id: z.string(),
@@ -193,7 +172,6 @@ const DatabaseSchema = z.object({
   transactions: z.array(TransactionSchema),
   categories: z.array(CategorySchema),
   budgets: z.array(BudgetSchema),
-  goals: z.array(GoalSchema),
   plaid_items: z.array(PlaidItemSchema),
 });
 
@@ -213,7 +191,7 @@ const defaultCategories: Category[] = [
     id: "cat-housing",
     name: "Housing",
     parent_id: null,
-    color: "#8b5cf6",
+    color: "#6366f1",
     icon: "🏠",
     is_system: true,
     created_at: new Date().toISOString(),
@@ -273,7 +251,7 @@ const defaultCategories: Category[] = [
     id: "cat-financial",
     name: "Financial",
     parent_id: null,
-    color: "#6366f1",
+    color: "#3b82f6",
     icon: "💳",
     is_system: true,
     created_at: new Date().toISOString(),
@@ -297,7 +275,6 @@ const defaultData: Database = {
   transactions: [],
   categories: defaultCategories,
   budgets: [],
-  goals: [],
   plaid_items: [],
 };
 
@@ -471,7 +448,6 @@ export async function importDatabase(
         validatedData.categories
       );
       db.data.budgets = mergeArrayById(db.data.budgets, validatedData.budgets);
-      db.data.goals = mergeArrayById(db.data.goals, validatedData.goals);
       db.data.plaid_items = mergeArrayById(
         db.data.plaid_items,
         validatedData.plaid_items
@@ -491,7 +467,6 @@ export async function importDatabase(
         validatedData.categories
       );
       db.data.budgets = appendArrayById(db.data.budgets, validatedData.budgets);
-      db.data.goals = appendArrayById(db.data.goals, validatedData.goals);
       db.data.plaid_items = appendArrayById(
         db.data.plaid_items,
         validatedData.plaid_items
@@ -541,12 +516,41 @@ function appendArrayById<T extends { id: string }>(
   return [...existing, ...newItems];
 }
 
-export type {
-  Database,
-  Account,
-  Transaction,
-  Category,
-  Budget,
-  Goal,
-  PlaidItem,
-};
+/**
+ * Delete an account by ID
+ * @param accountId - ID of the account to delete
+ * @param cascadeDelete - If true, also delete related transactions
+ * @returns true if account was deleted, false if not found
+ * @throws Error if database not initialized or write fails
+ */
+export async function deleteAccount(
+  accountId: string,
+  cascadeDelete: boolean = false
+): Promise<boolean> {
+  if (!db) {
+    throw new Error("Database not initialized");
+  }
+
+  await db.read();
+
+  // Check if account exists
+  const accountIndex = db.data.accounts.findIndex((a) => a.id === accountId);
+  if (accountIndex === -1) {
+    return false;
+  }
+
+  // Remove the account
+  db.data.accounts.splice(accountIndex, 1);
+
+  // Optionally cascade delete related transactions
+  if (cascadeDelete) {
+    db.data.transactions = db.data.transactions.filter(
+      (t) => t.account_id !== accountId
+    );
+  }
+
+  await db.write();
+  return true;
+}
+
+export type { Database, Account, Transaction, Category, Budget, PlaidItem };

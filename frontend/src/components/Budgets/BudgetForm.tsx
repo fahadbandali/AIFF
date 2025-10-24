@@ -146,30 +146,42 @@ export function BudgetForm({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b">
-          <h2 className="text-xl font-semibold">
+      <div className="modal-box max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">
             {isEdit ? "Edit Budget" : "Create Budget"}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
+          <button onClick={onClose} className="btn btn-ghost btn-sm btn-circle">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
+            <div className="alert alert-error">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="stroke-current shrink-0 h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
 
           {/* Category Selection */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category {categoryId === null && "(All Categories)"}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">
+                Category {categoryId === null && "(All Categories)"}
+              </span>
             </label>
             <select
               value={categoryId || "all"}
@@ -177,7 +189,7 @@ export function BudgetForm({
                 setCategoryId(e.target.value === "all" ? null : e.target.value)
               }
               disabled={isEdit}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="select select-bordered w-full"
               required
             >
               <option value="all">All Categories</option>
@@ -188,42 +200,46 @@ export function BudgetForm({
               ))}
             </select>
             {categoryId === null && (
-              <p className="text-xs text-gray-500 mt-1">
-                All-categories budgets require a specific date range
-              </p>
+              <label className="label">
+                <span className="label-text-alt opacity-70">
+                  All-categories budgets require a specific date range
+                </span>
+              </label>
             )}
             {isEdit && (
-              <p className="text-xs text-gray-500 mt-1">
-                Category cannot be changed when editing
-              </p>
+              <label className="label">
+                <span className="label-text-alt opacity-70">
+                  Category cannot be changed when editing
+                </span>
+              </label>
             )}
           </div>
 
           {/* Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Budget Amount
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">Budget Amount</span>
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-2 text-gray-500">$</span>
+            <label className="input-group">
+              <span>$</span>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="input input-bordered w-full"
                 placeholder="0.00"
                 step="0.01"
                 min="0"
                 max="10000000"
                 required
               />
-            </div>
+            </label>
           </div>
 
           {/* Period */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Period
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">Period</span>
             </label>
             <select
               value={period}
@@ -232,7 +248,7 @@ export function BudgetForm({
                   e.target.value as "daily" | "weekly" | "monthly" | "yearly"
                 )
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="select select-bordered w-full"
               required
             >
               <option value="daily">Daily</option>
@@ -243,59 +259,68 @@ export function BudgetForm({
           </div>
 
           {/* Start Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Start Date
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">Start Date</span>
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input input-bordered w-full"
               required
             />
           </div>
 
           {/* End Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              End Date{" "}
-              {categoryId === null && <span className="text-red-500">*</span>}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">
+                End Date{" "}
+                {categoryId === null && <span className="text-error">*</span>}
+              </span>
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="input input-bordered w-full"
               required={categoryId === null}
             />
             {categoryId !== null && (
-              <p className="text-xs text-gray-500 mt-1">
-                Leave empty for ongoing budget
-              </p>
+              <label className="label">
+                <span className="label-text-alt opacity-70">
+                  Leave empty for ongoing budget
+                </span>
+              </label>
             )}
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="modal-action">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="btn btn-ghost"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-primary"
               disabled={loading}
             >
-              {loading
-                ? "Saving..."
-                : isEdit
-                ? "Update Budget"
-                : "Create Budget"}
+              {loading ? (
+                <>
+                  <span className="loading loading-spinner loading-sm"></span>
+                  Saving...
+                </>
+              ) : isEdit ? (
+                "Update Budget"
+              ) : (
+                "Create Budget"
+              )}
             </button>
           </div>
         </form>

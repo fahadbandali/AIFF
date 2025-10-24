@@ -111,7 +111,6 @@ router.post("/validate", (req, res) => {
         transactions: validatedData.transactions.length,
         categories: validatedData.categories.length,
         budgets: validatedData.budgets.length,
-        goals: validatedData.goals.length,
         plaid_items: validatedData.plaid_items.length,
       },
     });

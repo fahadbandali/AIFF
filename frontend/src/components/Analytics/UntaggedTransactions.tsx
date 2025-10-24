@@ -9,6 +9,7 @@ export default function UntaggedTransactions() {
     null
   );
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
     queryKey: ["transactions", "untagged"],
@@ -24,14 +25,14 @@ export default function UntaggedTransactions() {
     mutationFn: ({ id, category_id }: { id: string; category_id: string }) =>
       api.transactions.tag(id, category_id),
     onSuccess: async () => {
-      // Invalidate and refetch all transaction-related queries
-      await queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      await queryClient.invalidateQueries({ queryKey: ["cashFlowStats"] });
-
-      // Force immediate refetch to ensure UI updates
-      await queryClient.refetchQueries({
+      // Only invalidate transaction and cash flow related queries
+      await queryClient.invalidateQueries({
         queryKey: ["transactions"],
-        type: "active",
+        exact: false,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["cashFlowStats"],
+        exact: false,
       });
 
       setSelectedTransaction(null);
@@ -89,102 +90,131 @@ export default function UntaggedTransactions() {
   return (
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
-        <h2 className="card-title">Untagged Transactions</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          {transactions.length} transaction
-          {transactions.length !== 1 ? "s" : ""} need
-          {transactions.length === 1 ? "s" : ""} review
-        </p>
-
-        <div className="space-y-2 max-h-96 overflow-y-auto">
-          {transactions.map((transaction) => (
-            <div
-              key={transaction.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors gap-3"
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="card-title">Untagged Transactions</h2>
+          <button
+            className="btn btn-ghost btn-circle btn-sm"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? "Expand" : "Collapse"}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className={`w-5 h-5 transition-transform ${
+                isCollapsed ? "rotate-180" : ""
+              }`}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-semibold truncate">
-                    {transaction.merchant_name || transaction.name}
-                  </p>
-                  {transaction.is_pending && (
-                    <span className="badge badge-warning badge-xs">
-                      Pending
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <p className="text-xs text-gray-500">
-                    {formatDate(transaction.date)} •{" "}
-                    {transaction.payment_channel}
-                  </p>
-                  <p
-                    className={`font-bold text-sm sm:hidden ${
-                      transaction.amount < 0 ? "text-success" : "text-error"
-                    }`}
-                  >
-                    {transaction.amount < 0 ? "+" : "-"}
-                    {formatCurrency(transaction.amount)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                <p
-                  className={`font-bold hidden sm:block ${
-                    transaction.amount < 0 ? "text-success" : "text-error"
-                  }`}
-                >
-                  {transaction.amount < 0 ? "+" : "-"}
-                  {formatCurrency(transaction.amount)}
-                </p>
-
-                {selectedTransaction === transaction.id ? (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <select
-                      className="select select-sm select-bordered min-w-[140px]"
-                      value={selectedCategory}
-                      onChange={(e) => setSelectedCategory(e.target.value)}
-                    >
-                      <option value="">Select category...</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.icon} {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      className="btn btn-sm btn-success"
-                      onClick={() => handleTag(transaction.id)}
-                      disabled={!selectedCategory || tagMutation.isPending}
-                    >
-                      {tagMutation.isPending ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      className="btn btn-sm btn-ghost"
-                      onClick={() => {
-                        setSelectedTransaction(null);
-                        setSelectedCategory("");
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    className="btn btn-sm btn-primary"
-                    onClick={() => {
-                      setSelectedTransaction(transaction.id);
-                      setSelectedCategory(transaction.category_id);
-                    }}
-                  >
-                    Tag
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+              />
+            </svg>
+          </button>
         </div>
+
+        {!isCollapsed && (
+          <>
+            <p className="text-sm text-gray-500 mb-4">
+              {transactions.length} transaction
+              {transactions.length !== 1 ? "s" : ""} need
+              {transactions.length === 1 ? "s" : ""} review
+            </p>
+
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {transactions.map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-base-200 rounded-lg hover:bg-base-300 transition-colors gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold truncate">
+                        {transaction.merchant_name || transaction.name}
+                      </p>
+                      {transaction.is_pending && (
+                        <span className="badge badge-warning badge-xs">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <p className="text-xs text-gray-500">
+                        {formatDate(transaction.date)} •{" "}
+                        {transaction.payment_channel}
+                      </p>
+                      <p
+                        className={`font-bold text-sm sm:hidden ${
+                          transaction.amount < 0 ? "text-success" : "text-error"
+                        }`}
+                      >
+                        {transaction.amount < 0 ? "+" : "-"}
+                        {formatCurrency(transaction.amount)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <p
+                      className={`font-bold hidden sm:block ${
+                        transaction.amount < 0 ? "text-success" : "text-error"
+                      }`}
+                    >
+                      {transaction.amount < 0 ? "+" : "-"}
+                      {formatCurrency(transaction.amount)}
+                    </p>
+
+                    {selectedTransaction === transaction.id ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select
+                          className="select select-sm select-bordered min-w-[140px]"
+                          value={selectedCategory}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
+                        >
+                          <option value="">Select category...</option>
+                          {categories.map((cat) => (
+                            <option key={cat.id} value={cat.id}>
+                              {cat.icon} {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="btn btn-sm btn-success"
+                          onClick={() => handleTag(transaction.id)}
+                          disabled={!selectedCategory || tagMutation.isPending}
+                        >
+                          {tagMutation.isPending ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          className="btn btn-sm btn-ghost"
+                          onClick={() => {
+                            setSelectedTransaction(null);
+                            setSelectedCategory("");
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => {
+                          setSelectedTransaction(transaction.id);
+                          setSelectedCategory(transaction.category_id);
+                        }}
+                      >
+                        Tag
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

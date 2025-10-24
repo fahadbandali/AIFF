@@ -39,3 +39,21 @@ export function useAccounts() {
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 }
+
+/**
+ * Hook to delete an account
+ */
+export function useDeleteAccount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, cascade }: { id: string; cascade?: boolean }) =>
+      api.accounts.delete(id, cascade),
+    onSuccess: () => {
+      // Invalidate accounts query to refetch data
+      queryClient.invalidateQueries({ queryKey: ["accounts"] });
+      // Also invalidate transactions in case they were cascade deleted
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    },
+  });
+}

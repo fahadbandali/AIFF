@@ -99,31 +99,6 @@ export interface BudgetProgress {
   over_budget: boolean;
 }
 
-export interface Goal {
-  id: string;
-  name: string;
-  target_amount: number;
-  current_amount: number;
-  target_date: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface GoalsResponse {
-  goals: Goal[];
-}
-
-export interface GoalEstimate {
-  goal: Goal;
-  remaining: number;
-  percentage: number;
-  completed: boolean;
-  days_until_target: number;
-  estimated_completion_date: string | null;
-  days_to_completion: number | null;
-  on_track: boolean;
-}
-
 export interface CashFlowStats {
   income: number;
   expenses: number;
@@ -147,7 +122,6 @@ export interface Database {
   transactions: Transaction[];
   categories: Category[];
   budgets: Budget[];
-  goals: Goal[];
   plaid_items: Array<{
     id: string;
     item_id: string;
@@ -181,7 +155,6 @@ export interface ValidateResponse {
     transactions: number;
     categories: number;
     budgets: number;
-    goals: number;
     plaid_items: number;
   };
   error?: string;
@@ -245,6 +218,14 @@ export const api = {
 
   accounts: {
     getAll: (): Promise<AccountsResponse> => fetchApi("/api/accounts"),
+
+    delete: (
+      id: string,
+      cascade: boolean = false
+    ): Promise<{ success: boolean; message: string; cascadeDelete: boolean }> =>
+      fetchApi(`/api/accounts/${id}?cascade=${cascade}`, {
+        method: "DELETE",
+      }),
   },
 
   transactions: {
@@ -359,55 +340,6 @@ export const api = {
 
     delete: (id: string): Promise<{ success: boolean; message: string }> =>
       fetchApi(`/api/budgets/${id}`, {
-        method: "DELETE",
-      }),
-  },
-
-  goals: {
-    getAll: (): Promise<GoalsResponse> => fetchApi("/api/goals"),
-
-    getById: (id: string): Promise<{ goal: Goal }> =>
-      fetchApi(`/api/goals/${id}`),
-
-    getEstimate: (id: string): Promise<GoalEstimate> =>
-      fetchApi(`/api/goals/${id}/estimate`),
-
-    create: (data: {
-      name: string;
-      target_amount: number;
-      current_amount?: number;
-      target_date: string;
-    }): Promise<{ success: boolean; goal: Goal }> =>
-      fetchApi("/api/goals", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
-
-    update: (
-      id: string,
-      data: {
-        name?: string;
-        target_amount?: number;
-        current_amount?: number;
-        target_date?: string;
-      }
-    ): Promise<{ success: boolean; goal: Goal }> =>
-      fetchApi(`/api/goals/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      }),
-
-    updateProgress: (
-      id: string,
-      current_amount: number
-    ): Promise<{ success: boolean; goal: Goal }> =>
-      fetchApi(`/api/goals/${id}/progress`, {
-        method: "PATCH",
-        body: JSON.stringify({ current_amount }),
-      }),
-
-    delete: (id: string): Promise<{ success: boolean; message: string }> =>
-      fetchApi(`/api/goals/${id}`, {
         method: "DELETE",
       }),
   },

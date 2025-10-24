@@ -4,7 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api";
 import { Settings, ExternalLink } from "lucide-react";
 
-export default function BudgetWidget() {
+interface BudgetWidgetProps {
+  displayContext?: "analytics" | "dashboard";
+}
+
+export default function BudgetWidget({
+  displayContext = "analytics",
+}: BudgetWidgetProps) {
   const navigate = useNavigate();
   const [showSettings, setShowSettings] = useState(false);
   const [visibleBudgets, setVisibleBudgets] = useState<string[]>([]);
@@ -50,11 +56,13 @@ export default function BudgetWidget() {
     enabled: budgetIds.length > 0,
   });
 
+  const widgetTitle = displayContext === "dashboard" ? "Budgets" : "Budgets";
+
   if (budgetsLoading) {
     return (
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title">Budgets</h2>
+          <h2 className="card-title">{widgetTitle}</h2>
           <div className="flex justify-center items-center h-64">
             <span className="loading loading-spinner loading-lg"></span>
           </div>
@@ -94,7 +102,7 @@ export default function BudgetWidget() {
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <div className="flex items-center justify-between">
-            <h2 className="card-title">Budgets</h2>
+            <h2 className="card-title">{widgetTitle}</h2>
           </div>
           <div className="alert alert-info">
             <span>No budgets set up yet.</span>
@@ -116,7 +124,7 @@ export default function BudgetWidget() {
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
         <div className="flex items-center justify-between">
-          <h2 className="card-title">Budgets</h2>
+          <h2 className="card-title">{widgetTitle}</h2>
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="btn btn-ghost btn-sm btn-circle"

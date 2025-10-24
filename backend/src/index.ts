@@ -10,7 +10,6 @@ import accountsRouter from "./routes/accounts";
 import transactionsRouter from "./routes/transactions";
 import categoriesRouter from "./routes/categories";
 import budgetsRouter from "./routes/budgets";
-import goalsRouter from "./routes/goals";
 import dataRouter from "./routes/data";
 import { rateLimit } from "./middleware/rateLimit";
 
@@ -55,7 +54,6 @@ app.use("/api/accounts", accountsRouter);
 app.use("/api/transactions", rateLimit(100, 60000), transactionsRouter);
 app.use("/api/categories", categoriesRouter);
 app.use("/api/budgets", budgetsRouter);
-app.use("/api/goals", goalsRouter);
 // Data import/export with strict rate limiting (10 exports per minute, 5 imports per minute)
 app.use("/api/data/export", rateLimit(10, 60000));
 app.use("/api/data/import", rateLimit(5, 60000));

@@ -74,7 +74,7 @@ export default function CashFlowLine({
     return (
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title">{title}</h2>
+          <h2 className="card-title text-lg">{title}</h2>
           <div className="flex justify-center items-center h-96">
             <span className="loading loading-spinner loading-lg"></span>
           </div>
@@ -87,7 +87,7 @@ export default function CashFlowLine({
     return (
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title">{title}</h2>
+          <h2 className="card-title text-lg">{title}</h2>
           <div className="alert alert-error">
             <span>Failed to load transactions</span>
           </div>
@@ -135,6 +135,30 @@ export default function CashFlowLine({
     ? processTransactions(transactionsData.transactions)
     : [];
 
+  // Calculate summary statistics
+  const totalIncome = chartData.reduce((sum, d) => sum + d.income, 0);
+  const totalExpenses = chartData.reduce((sum, d) => sum + d.expenses, 0);
+  const totalNet = totalIncome - totalExpenses;
+  const avgIncome = chartData.length > 0 ? totalIncome / chartData.length : 0;
+  const avgExpenses = chartData.length > 0 ? totalExpenses / chartData.length : 0;
+
+  // Calculate trends (compare first half to second half)
+  const midpoint = Math.floor(chartData.length / 2);
+  const firstHalf = chartData.slice(0, midpoint);
+  const secondHalf = chartData.slice(midpoint);
+
+  const firstHalfAvgExpenses = firstHalf.length > 0
+    ? firstHalf.reduce((sum, d) => sum + d.expenses, 0) / firstHalf.length
+    : 0;
+  const secondHalfAvgExpenses = secondHalf.length > 0
+    ? secondHalf.reduce((sum, d) => sum + d.expenses, 0) / secondHalf.length
+    : 0;
+
+  const expensesTrend = secondHalfAvgExpenses - firstHalfAvgExpenses;
+  const expensesTrendPercent = firstHalfAvgExpenses > 0
+    ? (expensesTrend / firstHalfAvgExpenses) * 100
+    : 0;
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -146,56 +170,98 @@ export default function CashFlowLine({
 
   return (
     <div className="card bg-base-100 shadow-xl">
-      <div className="card-body">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="card-title">{title}</h2>
-          <div className="btn-group">
+      <div className="card-body p-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+          <h2 className="card-title text-lg">{title}</h2>
+          <div className="join">
             <button
-              className={`btn btn-sm ${
+              className={`join-item btn btn-xs ${
                 dateRange === "30d" ? "btn-active" : ""
               }`}
               onClick={() => setDateRange("30d")}
             >
-              30 Days
+              30D
             </button>
             <button
-              className={`btn btn-sm ${dateRange === "3m" ? "btn-active" : ""}`}
+              className={`join-item btn btn-xs ${dateRange === "3m" ? "btn-active" : ""}`}
               onClick={() => setDateRange("3m")}
             >
-              3 Months
+              3M
             </button>
             <button
-              className={`btn btn-sm ${dateRange === "6m" ? "btn-active" : ""}`}
+              className={`join-item btn btn-xs ${dateRange === "6m" ? "btn-active" : ""}`}
               onClick={() => setDateRange("6m")}
             >
-              6 Months
+              6M
             </button>
             <button
-              className={`btn btn-sm ${dateRange === "1y" ? "btn-active" : ""}`}
+              className={`join-item btn btn-xs ${dateRange === "1y" ? "btn-active" : ""}`}
               onClick={() => setDateRange("1y")}
             >
-              1 Year
+              1Y
             </button>
           </div>
         </div>
 
-        <div className="h-96">
+        {/* Summary Stats */}
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="stat p-2 bg-base-200 rounded">
+            <div className="stat-title text-xs">Avg Income</div>
+            <div className="stat-value text-success text-sm">
+              {formatCurrency(avgIncome)}
+            </div>
+          </div>
+          <div className="stat p-2 bg-base-200 rounded">
+            <div className="stat-title text-xs">Avg Expenses</div>
+            <div className="stat-value text-error text-sm">
+              {formatCurrency(avgExpenses)}
+            </div>
+            {expensesTrend !== 0 && (
+              <div className={`stat-desc text-xs ${expensesTrend > 0 ? "text-error" : "text-success"}`}>
+                {expensesTrend > 0 ? "↑" : "↓"} {Math.abs(expensesTrendPercent).toFixed(1)}%
+              </div>
+            )}
+          </div>
+          <div className="stat p-2 bg-base-200 rounded">
+            <div className="stat-title text-xs">Total Net</div>
+            <div
+              className={`stat-value text-sm ${
+                totalNet >= 0 ? "text-success" : "text-error"
+              }`}
+            >
+              {totalNet >= 0 ? "+" : ""}
+              {formatCurrency(totalNet)}
+            </div>
+          </div>
+        </div>
+
+        <div className="h-80 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
               <XAxis
                 dataKey="date"
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 10 }}
                 angle={-45}
                 textAnchor="end"
-                height={80}
+                height={60}
               />
-              <YAxis tickFormatter={formatCurrency} tick={{ fontSize: 12 }} />
+              <YAxis 
+                tickFormatter={formatCurrency} 
+                tick={{ fontSize: 10 }}
+                width={60}
+              />
               <Tooltip
                 formatter={(value) => formatCurrency(value as number)}
-                contentStyle={{ backgroundColor: "rgba(255, 255, 255, 0.95)" }}
+                contentStyle={{ 
+                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                  fontSize: "12px"
+                }}
               />
-              <Legend />
+              <Legend 
+                wrapperStyle={{ fontSize: "11px" }}
+                iconSize={10}
+              />
               <Line
                 type="monotone"
                 dataKey="income"

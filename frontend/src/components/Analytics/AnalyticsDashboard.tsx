@@ -3,8 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import CashFlowCircle from "./CashFlowCircle";
 import CashFlowLine from "./CashFlowLine";
-import BudgetWidget from "./BudgetWidget";
-import GoalWidget from "./GoalWidget";
 import UntaggedTransactions from "./UntaggedTransactions";
 import TransactionList from "./TransactionList";
 
@@ -116,15 +114,9 @@ export default function AnalyticsDashboard() {
         </div>
 
         {/* Cash Flow Visualizations */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <CashFlowCircle />
           <CashFlowLine />
-        </div>
-
-        {/* Budgets and Goals */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <BudgetWidget />
-          <GoalWidget />
         </div>
       </div>
     </div>
