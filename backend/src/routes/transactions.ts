@@ -15,7 +15,7 @@ const querySchema = z.object({
   is_tagged: z
     .string()
     .optional()
-    .transform((val) => val === "true"),
+    .transform((val) => (val ? val === "true" : undefined)),
   start_date: z.string().optional(),
   end_date: z.string().optional(),
   limit: z
@@ -64,6 +64,7 @@ router.get("/", async (req, res) => {
     if (category_id) {
       transactions = transactions.filter((t) => t.category_id === category_id);
     }
+
     if (is_tagged !== undefined) {
       transactions = transactions.filter((t) => t.is_tagged === is_tagged);
     }

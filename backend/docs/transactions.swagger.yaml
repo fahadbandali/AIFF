@@ -1,0 +1,256 @@
+openapi: 3.1.0
+info:
+  title: Transactions API
+  version: 1.0.0
+  description: API for managing and analyzing financial transactions.
+
+servers:
+  - url: /api/transactions
+    description: Base URL for transaction endpoints
+
+paths:
+  /:
+    get:
+      summary: Get all transactions
+      description: Retrieve all transactions with optional filters and pagination.
+      parameters:
+        - name: account_id
+          in: query
+          schema:
+            type: string
+          description: Filter by account ID
+        - name: category_id
+          in: query
+          schema:
+            type: string
+          description: Filter by category ID
+        - name: is_tagged
+          in: query
+          schema:
+            type: string
+            enum: ["true", "false"]
+          description: Filter by whether the transaction is tagged
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Include only transactions on or after this date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Include only transactions on or before this date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+          description: Maximum number of transactions to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of transactions to skip
+      responses:
+        "200":
+          description: Successful response with transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Transaction"
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /{id}:
+    get:
+      summary: Get transaction by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Transaction ID
+      responses:
+        "200":
+          description: Transaction found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transaction:
+                    $ref: "#/components/schemas/Transaction"
+        "404":
+          description: Transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /{id}/tag:
+    patch:
+      summary: Tag a transaction
+      description: Update a transaction’s category and mark it as tagged.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Transaction ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [category_id]
+              properties:
+                category_id:
+                  type: string
+                  description: ID of the category to assign
+      responses:
+        "200":
+          description: Transaction successfully tagged
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  transaction:
+                    $ref: "#/components/schemas/Transaction"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Category or transaction not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stats/cash-flow:
+    get:
+      summary: Get cash flow statistics
+      description: Compute income, expenses, and net totals for a given date range.
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Start date for the calculation range
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+          description: End date for the calculation range
+      responses:
+        "200":
+          description: Cash flow statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  income:
+                    type: number
+                    description: Sum of negative (income) amounts
+                  expenses:
+                    type: number
+                    description: Sum of positive (expense) amounts
+                  net:
+                    type: number
+                    description: income - expenses
+                  transaction_count:
+                    type: integer
+                    description: Number of transactions considered
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        account_id:
+          type: string
+        category_id:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          description: Positive = expense, Negative = income
+        date:
+          type: string
+          format: date-time
+        description:
+          type: string
+        is_tagged:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+          nullable: true
+        message:
+          type: string
+          nullable: true
