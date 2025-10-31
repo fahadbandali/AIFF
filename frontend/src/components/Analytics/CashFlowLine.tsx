@@ -9,6 +9,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { DateTime, Interval } from "luxon";
 import { useQuery } from "@tanstack/react-query";
 import { api, type Transaction } from "../../lib/api";
 import {
@@ -98,21 +99,49 @@ export default function CashFlowLine({
 
   // Process transactions into daily/monthly aggregates
   const processTransactions = (transactions: Transaction[]) => {
+    console.log(transactions);
     const groupBy = dateRange === "30d" ? "day" : "month";
+    //const intervals =
+    //  groupBy === "day"
+    //    ? eachDayOfInterval({
+    //        start: new Date(start + "T00:00:00.000Z"),
+    //        end: new Date(end + "T00:00:00.000Z"),
+    //      })
+    //    : eachMonthOfInterval({
+    //        start: DateTime.fromISO('2025-10-01', { zone: 'utc' }),
+    //        end: new Date(end + "T00:00:00.000Z"),
+    //      });
+    const startTime = DateTime.fromISO(start, { zone: "utc" });
+    const endTime = DateTime.fromISO(end, { zone: "utc" });
+    const fullInterval = Interval.fromDateTimes(startTime, endTime);
     const intervals =
       groupBy === "day"
-        ? eachDayOfInterval({ start: new Date(start), end: new Date(end) })
-        : eachMonthOfInterval({ start: new Date(start), end: new Date(end) });
+        ? fullInterval.splitBy({ days: 1 })
+        : fullInterval.splitBy({ months: 1 });
 
     return intervals.map((interval) => {
-      const intervalStart =
-        groupBy === "day" ? interval : startOfMonth(interval);
-      const intervalEnd = groupBy === "day" ? interval : endOfMonth(interval);
+      const intervalStart = interval.start;
+      const intervalEnd = interval.end;
 
       const intervalTransactions = transactions.filter((t) => {
-        const txDate = new Date(t.date);
-        return txDate >= intervalStart && txDate <= intervalEnd;
+        const txDate = DateTime.fromISO(t.date, { zone: "utc" });
+        console.log(t.date, txDate);
+        console.log(
+          "t",
+          t,
+          "txDate",
+          txDate,
+          "intervalStart",
+          intervalStart,
+          "intervalEnd",
+          intervalEnd,
+          "result",
+          interval.contains(txDate)
+        );
+        return interval.contains(txDate);
       });
+
+      console.log(intervalTransactions);
 
       const income = intervalTransactions
         .filter((t) => t.amount < 0)
@@ -122,8 +151,12 @@ export default function CashFlowLine({
         .filter((t) => t.amount > 0)
         .reduce((sum, t) => sum + t.amount, 0);
 
+      console.log(income);
+      console.log(expenses);
+      console.log(interval.toFormat(groupBy === "day" ? "MM dd" : "MM yyyy"));
+
       return {
-        date: format(interval, groupBy === "day" ? "MMM dd" : "MMM yyyy"),
+        date: interval.toFormat(groupBy === "day" ? "MM dd" : "MM yyyy"),
         income,
         expenses,
         net: income - expenses,
@@ -140,24 +173,26 @@ export default function CashFlowLine({
   const totalExpenses = chartData.reduce((sum, d) => sum + d.expenses, 0);
   const totalNet = totalIncome - totalExpenses;
   const avgIncome = chartData.length > 0 ? totalIncome / chartData.length : 0;
-  const avgExpenses = chartData.length > 0 ? totalExpenses / chartData.length : 0;
+  const avgExpenses =
+    chartData.length > 0 ? totalExpenses / chartData.length : 0;
 
   // Calculate trends (compare first half to second half)
   const midpoint = Math.floor(chartData.length / 2);
   const firstHalf = chartData.slice(0, midpoint);
   const secondHalf = chartData.slice(midpoint);
 
-  const firstHalfAvgExpenses = firstHalf.length > 0
-    ? firstHalf.reduce((sum, d) => sum + d.expenses, 0) / firstHalf.length
-    : 0;
-  const secondHalfAvgExpenses = secondHalf.length > 0
-    ? secondHalf.reduce((sum, d) => sum + d.expenses, 0) / secondHalf.length
-    : 0;
+  const firstHalfAvgExpenses =
+    firstHalf.length > 0
+      ? firstHalf.reduce((sum, d) => sum + d.expenses, 0) / firstHalf.length
+      : 0;
+  const secondHalfAvgExpenses =
+    secondHalf.length > 0
+      ? secondHalf.reduce((sum, d) => sum + d.expenses, 0) / secondHalf.length
+      : 0;
 
   const expensesTrend = secondHalfAvgExpenses - firstHalfAvgExpenses;
-  const expensesTrendPercent = firstHalfAvgExpenses > 0
-    ? (expensesTrend / firstHalfAvgExpenses) * 100
-    : 0;
+  const expensesTrendPercent =
+    firstHalfAvgExpenses > 0 ? (expensesTrend / firstHalfAvgExpenses) * 100 : 0;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -183,19 +218,25 @@ export default function CashFlowLine({
               30D
             </button>
             <button
-              className={`join-item btn btn-xs ${dateRange === "3m" ? "btn-active" : ""}`}
+              className={`join-item btn btn-xs ${
+                dateRange === "3m" ? "btn-active" : ""
+              }`}
               onClick={() => setDateRange("3m")}
             >
               3M
             </button>
             <button
-              className={`join-item btn btn-xs ${dateRange === "6m" ? "btn-active" : ""}`}
+              className={`join-item btn btn-xs ${
+                dateRange === "6m" ? "btn-active" : ""
+              }`}
               onClick={() => setDateRange("6m")}
             >
               6M
             </button>
             <button
-              className={`join-item btn btn-xs ${dateRange === "1y" ? "btn-active" : ""}`}
+              className={`join-item btn btn-xs ${
+                dateRange === "1y" ? "btn-active" : ""
+              }`}
               onClick={() => setDateRange("1y")}
             >
               1Y
@@ -217,8 +258,13 @@ export default function CashFlowLine({
               {formatCurrency(avgExpenses)}
             </div>
             {expensesTrend !== 0 && (
-              <div className={`stat-desc text-xs ${expensesTrend > 0 ? "text-error" : "text-success"}`}>
-                {expensesTrend > 0 ? "↑" : "↓"} {Math.abs(expensesTrendPercent).toFixed(1)}%
+              <div
+                className={`stat-desc text-xs ${
+                  expensesTrend > 0 ? "text-error" : "text-success"
+                }`}
+              >
+                {expensesTrend > 0 ? "↑" : "↓"}{" "}
+                {Math.abs(expensesTrendPercent).toFixed(1)}%
               </div>
             )}
           </div>
@@ -246,22 +292,19 @@ export default function CashFlowLine({
                 textAnchor="end"
                 height={60}
               />
-              <YAxis 
-                tickFormatter={formatCurrency} 
+              <YAxis
+                tickFormatter={formatCurrency}
                 tick={{ fontSize: 10 }}
                 width={60}
               />
               <Tooltip
                 formatter={(value) => formatCurrency(value as number)}
-                contentStyle={{ 
+                contentStyle={{
                   backgroundColor: "rgba(255, 255, 255, 0.95)",
-                  fontSize: "12px"
+                  fontSize: "12px",
                 }}
               />
-              <Legend 
-                wrapperStyle={{ fontSize: "11px" }}
-                iconSize={10}
-              />
+              <Legend wrapperStyle={{ fontSize: "11px" }} iconSize={10} />
               <Line
                 type="monotone"
                 dataKey="income"

@@ -11,6 +11,7 @@ import TransactionList from "../Analytics/TransactionList";
 import { BudgetDashboard } from "../Budgets/BudgetDashboard";
 import DataManagement from "../Settings/DataManagement";
 import CategoriesDashboard from "../Categories/CategoriesDashboard";
+import TransactionsMasterView from "../Analytics/TransactionsMasterView";
 
 type ViewMode =
   | "accounts"
@@ -298,11 +299,14 @@ export function Dashboard() {
               </button>
             </div>
 
+            <div className="">
+              <TransactionsMasterView />
+            </div>
             {/* Transaction Management: Untagged and Full List Side-by-Side */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/*<div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <UntaggedTransactions />
               <TransactionList />
-            </div>
+            </div>*/}
 
             {/* Cash Flow Visualizations */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
