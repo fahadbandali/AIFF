@@ -9,6 +9,12 @@ const tagTransactionSchema = z.object({
   category_id: z.string().min(1, "category_id is required"),
 });
 
+// Validation schemas
+const patchTransactionSchema = z.object({
+  category_id: z.string().min(1, "category_id is required").optional(),
+  name: z.string().optional(),
+});
+
 const querySchema = z.object({
   account_id: z.string().optional(),
   category_id: z.string().optional(),
@@ -180,6 +186,76 @@ router.patch("/:id/tag", async (req, res) => {
 
     transaction.category_id = category_id;
     transaction.is_tagged = true;
+    transaction.updated_at = new Date().toISOString();
+
+    await db.write();
+
+    res.json({
+      success: true,
+      transaction,
+    });
+  } catch (error) {
+    console.error("Error tagging transaction:", error);
+    res.status(500).json({
+      error: "Failed to tag transaction",
+      message:
+        process.env.NODE_ENV === "development"
+          ? (error as Error).message
+          : undefined,
+    });
+  }
+});
+
+/**
+ * PATCH /api/transactions/:id
+ * Update transaction category and mark as tagged
+ */
+router.patch("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Validate input
+    const validationResult = await patchTransactionSchema.safeParseAsync(
+      req.body
+    );
+    if (!validationResult.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        details: validationResult.error.errors,
+      });
+    }
+
+    const { category_id, name } = validationResult.data;
+
+    const db = getDb();
+    await db.read();
+
+    // Find and update transaction
+    const transaction = db.data.transactions.find((t) => t.id === id);
+    if (!transaction) {
+      console.log(`Transaction ${id} not found in database`);
+      return res.status(404).json({
+        error: "Transaction not found",
+      });
+    }
+
+    if (category_id) {
+      // Verify category exists
+      const category = db.data.categories.find((c) => c.id === category_id);
+      if (!category) {
+        return res.status(404).json({
+          error: "Category not found",
+        });
+      }
+
+      transaction.category_id = category_id;
+      transaction.is_tagged = transaction.category_id !== "cat-uncategorized";
+    }
+
+    if (name) {
+      transaction.name = name;
+    }
+
     transaction.updated_at = new Date().toISOString();
 
     await db.write();
