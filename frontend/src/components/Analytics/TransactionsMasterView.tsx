@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 
 export default function TransactionsMasterView() {
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [startDate, setStartDate] = useState("");
@@ -42,6 +43,29 @@ export default function TransactionsMasterView() {
   const transactions = transactionsData?.transactions || [];
   const categories = categoriesData?.categories || [];
   const accounts = accountsData?.accounts || [];
+
+  const updateMutation = useMutation({
+    mutationFn: ({
+      id,
+      category_id,
+      name,
+    }: {
+      id: string;
+      category_id?: string;
+      name?: string;
+    }) => api.transactions.patch(id, category_id, name),
+    onSuccess: async () => {
+      // Only invalidate transaction and cash flow related queries
+      await queryClient.invalidateQueries({
+        queryKey: ["transactions"],
+        exact: false,
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["cashFlowStats"],
+        exact: false,
+      });
+    },
+  });
 
   // ✅ Initialize filters once categories/accounts are loaded
   useEffect(() => {
@@ -178,6 +202,11 @@ export default function TransactionsMasterView() {
   const handleSaveEdit = () => {
     if (editingTransaction) {
       // updateTransactionMutation.mutate({ id: editingTransaction.id, data: editForm });
+      updateMutation.mutate({
+        id: editingTransaction.id,
+        category_id: editForm.category_id,
+        name: editForm.description,
+      });
       setEditingTransaction(null);
     }
   };

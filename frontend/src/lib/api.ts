@@ -264,6 +264,16 @@ export const api = {
         body: JSON.stringify({ category_id }),
       }),
 
+    patch: (
+      id: string,
+      category_id?: string,
+      name?: string
+    ): Promise<{ success: boolean; transaction: Transaction }> =>
+      fetchApi(`/api/transactions/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ category_id, name }),
+      }),
+
     getCashFlowStats: (params?: {
       start_date?: string;
       end_date?: string;
