@@ -1,3 +1,4 @@
+![](./aiff_landing.png)
 # AIFF - Personal Finance Manager
 
 A full-stack personal finance application that connects to banks/credit cards via Plaid, allowing transaction auditing, categorization, and budget management.
