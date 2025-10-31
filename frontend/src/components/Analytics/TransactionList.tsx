@@ -13,6 +13,7 @@ export default function TransactionList() {
     queryFn: () =>
       api.transactions.getAll({
         category_id: filterCategory || undefined,
+        is_tagged: true,
         limit,
       }),
   });

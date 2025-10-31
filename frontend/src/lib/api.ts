@@ -301,6 +301,13 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+
+    getTransactions: (
+      category_id: string
+    ): Promise<{ transactions: Transaction[] }> =>
+      fetchApi(`/api/categories/${category_id}/transactions`, {
+        method: "GET",
+      }),
   },
 
   budgets: {

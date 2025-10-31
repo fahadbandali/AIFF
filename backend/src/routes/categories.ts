@@ -131,4 +131,71 @@ router.post("/", async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/categories/:id
+ * Delete a category
+ */
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDb();
+    await db.read();
+
+    const categoryIndex = db.data.categories.findIndex((c) => c.id === id);
+    if (categoryIndex === -1) {
+      return res.status(404).json({
+        error: "Category not found",
+      });
+    }
+
+    db.data.categories.splice(categoryIndex, 1);
+    await db.write();
+
+    res.json({
+      success: true,
+      message: "Category deleted successfully",
+    });
+
+    res.json({
+      success: true,
+      message: "Category deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    res.status(500).json({
+      error: "Failed to delete category",
+      message:
+        process.env.NODE_ENV === "development"
+          ? (error as Error).message
+          : undefined,
+    });
+  }
+});
+
+/**
+ * fetch all the transactions for a category
+ */
+router.get("/:category_id/transactions", async (req, res) => {
+  try {
+    const { category_id } = req.params;
+    const db = getDb();
+    await db.read();
+
+    const transactions = db.data.transactions.filter(
+      (t) => t.category_id === category_id
+    );
+
+    res.json({ transactions });
+  } catch (error) {
+    console.error("Error fetching transactions for category:", error);
+    res.status(500).json({
+      error: "Failed to fetch transactions for category",
+      message:
+        process.env.NODE_ENV === "development"
+          ? (error as Error).message
+          : undefined,
+    });
+  }
+});
+
 export default router;

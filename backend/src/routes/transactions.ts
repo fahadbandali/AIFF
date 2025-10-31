@@ -177,25 +177,11 @@ router.patch("/:id/tag", async (req, res) => {
       });
     }
 
-    console.log(
-      `Before update - Transaction ${id}: category=${transaction.category_id}, is_tagged=${transaction.is_tagged}, date=${transaction.date}`
-    );
-
     transaction.category_id = category_id;
     transaction.is_tagged = true;
     transaction.updated_at = new Date().toISOString();
 
     await db.write();
-
-    // Debug: Log the updated transaction
-    console.log(
-      `After update - Transaction ${id}: category=${transaction.category_id}, is_tagged=${transaction.is_tagged}, date=${transaction.date}`
-    );
-
-    // Debug: Check if transaction still exists after write
-    await db.read();
-    const stillExists = db.data.transactions.find((t) => t.id === id);
-    console.log(`Transaction ${id} still exists after write:`, !!stillExists);
 
     res.json({
       success: true,

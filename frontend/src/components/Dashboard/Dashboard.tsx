@@ -10,8 +10,14 @@ import UntaggedTransactions from "../Analytics/UntaggedTransactions";
 import TransactionList from "../Analytics/TransactionList";
 import { BudgetDashboard } from "../Budgets/BudgetDashboard";
 import DataManagement from "../Settings/DataManagement";
+import CategoriesDashboard from "../Categories/CategoriesDashboard";
 
-type ViewMode = "accounts" | "analytics" | "budgets" | "settings";
+type ViewMode =
+  | "accounts"
+  | "analytics"
+  | "budgets"
+  | "settings"
+  | "categories";
 
 export function Dashboard() {
   const navigate = useNavigate();
@@ -117,6 +123,8 @@ export function Dashboard() {
               ? "Financial Analytics"
               : view === "budgets"
               ? "Budget Management"
+              : view === "categories"
+              ? "Category Management"
               : "Settings"}
           </h1>
           <p className="text-lg opacity-90">
@@ -126,6 +134,8 @@ export function Dashboard() {
               ? "Track spending, budgets, goals, and cash flow"
               : view === "budgets"
               ? "Create and manage your spending budgets"
+              : view === "categories"
+              ? "Create and manage your categories"
               : "Export and import your financial data"}
           </p>
         </div>
@@ -194,6 +204,12 @@ export function Dashboard() {
                 onClick={() => navigate("/connect")}
               >
                 + Connect
+              </button>
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => setView("categories")}
+              >
+                📚 Categories
               </button>
             </div>
           </div>
@@ -297,6 +313,9 @@ export function Dashboard() {
         ) : view === "budgets" ? (
           /* Budget View */
           <BudgetDashboard />
+        ) : view === "categories" ? (
+          /* Categories View */
+          <CategoriesDashboard />
         ) : (
           /* Settings View */
           <DataManagement />

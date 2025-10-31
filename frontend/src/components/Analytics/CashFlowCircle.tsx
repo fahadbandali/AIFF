@@ -41,9 +41,13 @@ export default function CashFlowCircle({
 
   // Always fetch transactions and categories (not conditional)
   const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
-    queryKey: ["transactions", "all", startDate, endDate],
+    queryKey: ["transactions", "all", startDate, endDate, "is_tagged", true],
     queryFn: () =>
-      api.transactions.getAll({ start_date: startDate, end_date: endDate }),
+      api.transactions.getAll({
+        start_date: startDate,
+        end_date: endDate,
+        is_tagged: true,
+      }),
     staleTime: 0, // Always consider data stale
     gcTime: 0, // Don't cache data
     refetchOnWindowFocus: true, // Refetch when window gains focus
@@ -119,66 +123,7 @@ export default function CashFlowCircle({
       const transactions = transactionsData.transactions || [];
       const categories = categoriesData.categories || [];
 
-      // Debug: Log transaction and category counts
-      console.log(
-        `Processing ${transactions.length} transactions with ${categories.length} categories`
-      );
-
-      // Debug: Check if we have the specific transaction we're looking for
-      const specificTransaction = transactions.find(
-        (t) => t.id === "bc235054-82be-4891-85ec-ac7d0a22174f"
-      );
-      if (specificTransaction) {
-        console.log(`Found specific transaction:`, specificTransaction);
-      } else {
-        console.log(`Specific transaction NOT found in query results`);
-      }
-
-      // Debug: Count transactions by category
-      const categoryCounts = new Map<string, number>();
       const expenseTransactions = transactions.filter((t) => t.amount > 0);
-      console.log(`Found ${expenseTransactions.length} expense transactions`);
-
-      // Debug: Check healthcare transactions specifically
-      console.log(`Transactions:`, transactions);
-      const healthcareTransactions = transactions.filter(
-        (t) => t.category_id === "cat-healthcare"
-      );
-      console.log(`Healthcare transactions: ${healthcareTransactions.length}`);
-      healthcareTransactions.forEach((t) => {
-        console.log(
-          `  Healthcare: $${t.amount} - ${t.name} (${
-            t.amount > 0 ? "expense" : "income"
-          })`
-        );
-      });
-
-      // Debug: Check for any tagged transactions
-      const taggedTransactions = transactions.filter((t) => t.is_tagged);
-      console.log(`Tagged transactions: ${taggedTransactions.length}`);
-      taggedTransactions.forEach((t) => {
-        const category = categories.find((c) => c.id === t.category_id);
-        console.log(
-          `  Tagged: ${t.name} -> ${category?.name || t.category_id} ($${
-            t.amount
-          })`
-        );
-      });
-
-      expenseTransactions.forEach((t) => {
-        const count = categoryCounts.get(t.category_id) || 0;
-        categoryCounts.set(t.category_id, count + 1);
-      });
-
-      console.log("Transaction counts by category:");
-      for (const [categoryId, count] of categoryCounts) {
-        const category = categories.find((c) => c.id === categoryId);
-        console.log(
-          `  ${categoryId}: ${count} transactions (${
-            category?.name || "Unknown"
-          })`
-        );
-      }
 
       expenseTransactions.forEach((t) => {
         const category = categories.find((c) => c.id === t.category_id);
