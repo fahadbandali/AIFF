@@ -16,6 +16,15 @@ const createCategorySchema = z.object({
   icon: z.string().min(1, "icon is required"),
 });
 
+const updateCategorySchema = z.object({
+  name: z.string().min(1, "name is required").optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, "color must be a valid hex color")
+    .optional(),
+  icon: z.string().min(1, "icon is required").optional(),
+});
+
 /**
  * GET /api/categories
  * Get all categories
@@ -66,6 +75,58 @@ router.get("/:id", async (req, res) => {
         process.env.NODE_ENV === "development"
           ? (error as Error).message
           : undefined,
+    });
+  }
+});
+
+/**
+ * PUT /api/categories/:id
+ * Update a category by ID
+ */
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const validationResult = updateCategorySchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        error: "Invalid request",
+        details: validationResult.error.errors,
+      });
+    }
+    const { name, color, icon } = validationResult.data;
+    const db = getDb();
+    await db.read();
+
+    const category = db.data.categories.find((c) => c.id === id);
+    if (!category) {
+      return res.status(404).json({
+        error: "Category not found",
+      });
+    }
+
+    if (name) {
+      category.name = name;
+    }
+    if (color) {
+      category.color = color;
+    }
+    if (icon) {
+      category.icon = icon;
+    }
+
+    category.updated_at = new Date().toISOString();
+
+    await db.write();
+
+    res.json({
+      success: true,
+      category: category,
+    });
+  } catch (error) {
+    console.error("Error updating category:", error);
+    res.status(500).json({
+      error: "Failed to update category",
+      message: (error as Error).message,
     });
   }
 });
