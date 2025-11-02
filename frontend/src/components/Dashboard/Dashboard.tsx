@@ -185,6 +185,12 @@ export function Dashboard() {
                 📊 Analytics
               </button>
               <button
+                className="btn btn-sm btn-outline"
+                onClick={() => setView("categories")}
+              >
+                📚 Categories
+              </button>
+              <button
                 className={`btn btn-sm ${
                   view === "budgets" ? "btn-primary" : "btn-outline"
                 }`}
@@ -205,12 +211,6 @@ export function Dashboard() {
                 onClick={() => navigate("/connect")}
               >
                 + Connect
-              </button>
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => setView("categories")}
-              >
-                📚 Categories
               </button>
             </div>
           </div>

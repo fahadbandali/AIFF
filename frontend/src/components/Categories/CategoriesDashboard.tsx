@@ -189,37 +189,6 @@ const CategoriesDashboard: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-6 max-w-7xl">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Categories
-          </h1>
-          <p className="text-base-content/60 mt-2">
-            Organize your budget with custom categories
-          </p>
-        </div>
-        <button
-          className="btn btn-primary gap-2 shadow-lg"
-          onClick={openCreateDialog}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-          Add Category
-        </button>
-      </div>
-
       {categories.length === 0 ? (
         <div className="card bg-base-200 shadow-xl">
           <div className="card-body items-center text-center py-16">
@@ -258,6 +227,28 @@ const CategoriesDashboard: React.FC = () => {
               <div className="stat-title">Total Categories</div>
               <div className="stat-value text-primary">{categories.length}</div>
               <div className="stat-desc">Active budget categories</div>
+            </div>
+            <div className="stat flex justify-end border-none">
+              <button
+                className="btn btn-primary gap-2 shadow-lg"
+                onClick={openCreateDialog}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Add Category
+              </button>
             </div>
           </div>
 

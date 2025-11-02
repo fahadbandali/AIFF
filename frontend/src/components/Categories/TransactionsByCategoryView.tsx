@@ -42,6 +42,11 @@ interface TransactionsByCategoryData {
   color?: string;
 }
 
+interface MonthlySpendingData {
+  month: string;
+  [key: string]: number | string; // Dynamic keys for each category
+}
+
 interface TransactionsByCategoryViewProps {
   categories: Category[];
 }
@@ -50,12 +55,14 @@ const TransactionsByCategoryView: React.FC<TransactionsByCategoryViewProps> = ({
   categories,
 }) => {
   const [data, setData] = useState<TransactionsByCategoryData[]>([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlySpendingData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(
     new Set()
   );
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<"category" | "monthly">("category");
 
   useEffect(() => {
     const fetchSpendingData = async () => {
@@ -79,6 +86,7 @@ const TransactionsByCategoryView: React.FC<TransactionsByCategoryViewProps> = ({
             spending: totalSpending,
             income: totalIncome,
             color: category.color,
+            transactions, // Include transactions for monthly breakdown
           };
         });
 
@@ -91,7 +99,40 @@ const TransactionsByCategoryView: React.FC<TransactionsByCategoryViewProps> = ({
 
         // Sort by spending amount in descending order
         filteredData.sort((a, b) => b.spending - a.spending);
-        setData(filteredData);
+
+        // Calculate monthly spending breakdown
+        const monthlyMap = new Map<string, { [key: string]: number }>();
+
+        filteredData.forEach((categoryData) => {
+          categoryData.transactions.forEach((txn: Transaction) => {
+            if (txn.amount > 0) {
+              // Only spending, not income
+              const date = new Date(txn.date);
+              const monthKey = `${date.getFullYear()}-${String(
+                date.getMonth() + 1
+              ).padStart(2, "0")}`;
+
+              if (!monthlyMap.has(monthKey)) {
+                monthlyMap.set(monthKey, {});
+              }
+
+              const monthData = monthlyMap.get(monthKey)!;
+              monthData[categoryData.category] =
+                (monthData[categoryData.category] || 0) + txn.amount;
+            }
+          });
+        });
+
+        // Convert to array and sort by date
+        const monthlyArray = Array.from(monthlyMap.entries())
+          .map(([month, categories]) => ({
+            month,
+            ...categories,
+          }))
+          .sort((a, b) => a.month.localeCompare(b.month));
+
+        setMonthlyData(monthlyArray);
+        setData(filteredData.map(({ transactions, ...rest }) => rest));
         setError(null);
       } catch (err) {
         setError(
@@ -168,28 +209,52 @@ const TransactionsByCategoryView: React.FC<TransactionsByCategoryViewProps> = ({
     <div className="w-full relative">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-2xl font-bold">
-          Year to Date Spending by Category
+          {viewMode === "category"
+            ? "Year to Date Spending by Category"
+            : "Monthly Spending Breakdown"}
         </h2>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className="btn btn-sm btn-outline gap-2"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
+        <div className="flex gap-2">
+          {/* View Toggle */}
+          <div className="join">
+            <button
+              onClick={() => setViewMode("category")}
+              className={`btn btn-sm join-item ${
+                viewMode === "category" ? "btn-active" : "btn-outline"
+              }`}
+            >
+              By Category
+            </button>
+            <button
+              onClick={() => setViewMode("monthly")}
+              className={`btn btn-sm join-item ${
+                viewMode === "monthly" ? "btn-active" : "btn-outline"
+              }`}
+            >
+              Monthly
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="btn btn-sm btn-outline gap-2"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-            />
-          </svg>
-          Filter
-        </button>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+            Filter
+          </button>
+        </div>
       </div>
 
       {/* Filter Popout Card */}
@@ -239,47 +304,80 @@ const TransactionsByCategoryView: React.FC<TransactionsByCategoryViewProps> = ({
         </>
       )}
 
-      <ResponsiveContainer width="100%" height={400}>
-        <BarChart
-          data={visibleData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="category" angle={-45} textAnchor="end" height={100} />
-          <YAxis tickFormatter={formatCurrency} />
-          <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
-            contentStyle={{
-              backgroundColor: "hsl(var(--b1))",
-              borderColor: "hsl(var(--bc) / 0.2)",
-            }}
-          />
-          <Legend />
-          <Bar dataKey="spending" name="Spending">
-            {visibleData.map((item, index) => (
-              <Cell
-                key={`cell-${index}`}
-                fill={item.color || "hsl(var(--p))"}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-
-      <div className="stats shadow mt-4 w-full">
-        <div className="stat">
-          <div className="stat-title">Total Spending</div>
-          <div className="stat-value text-primary">
-            {formatCurrency(totalSpending)}
-          </div>
-        </div>
-        <div className="stat">
-          <div className="stat-title">Total Income</div>
-          <div className="stat-value text-success">
-            {formatCurrency(totalIncome)}
-          </div>
-        </div>
-      </div>
+      {viewMode === "category" && (
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart
+            data={visibleData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="category"
+              angle={-45}
+              textAnchor="end"
+              height={100}
+            />
+            <YAxis tickFormatter={formatCurrency} />
+            <Tooltip
+              formatter={(value: number) => formatCurrency(value)}
+              contentStyle={{
+                backgroundColor: "hsl(var(--b1))",
+                borderColor: "hsl(var(--bc) / 0.2)",
+              }}
+            />
+            <Legend />
+            <Bar dataKey="spending" name="Spending">
+              {visibleData.map((item, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={item.color || "hsl(var(--p))"}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+      {viewMode === "monthly" && (
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart
+            data={monthlyData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="month"
+              tickFormatter={(value) => {
+                const [year, month] = value.split("-");
+                const date = new Date(parseInt(year), parseInt(month) - 1);
+                return date.toLocaleDateString("en-US", {
+                  month: "short",
+                  year: "numeric",
+                });
+              }}
+            />
+            <YAxis tickFormatter={formatCurrency} />
+            <Tooltip
+              formatter={(value: number) => formatCurrency(value)}
+              contentStyle={{
+                backgroundColor: "hsl(var(--b1))",
+                borderColor: "hsl(var(--bc) / 0.2)",
+              }}
+            />
+            <Legend />
+            {data
+              .filter((item) => !hiddenCategories.has(item.category))
+              .map((item) => (
+                <Bar
+                  key={item.category}
+                  dataKey={item.category}
+                  stackId="spending"
+                  fill={item.color || "hsl(var(--p))"}
+                  name={item.category}
+                />
+              ))}
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 };
