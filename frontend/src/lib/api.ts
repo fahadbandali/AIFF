@@ -311,7 +311,22 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
-
+    delete: (id: string): Promise<{ success: boolean; message: string }> =>
+      fetchApi(`/api/categories/${id}`, {
+        method: "DELETE",
+      }),
+    put: (
+      id: string,
+      data: {
+        name: string;
+        color: string;
+        icon: string;
+      }
+    ): Promise<{ success: boolean; category: Category }> =>
+      fetchApi(`/api/categories/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      }),
     getTransactions: (
       category_id: string
     ): Promise<{ transactions: Transaction[] }> =>
