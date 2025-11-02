@@ -70,6 +70,9 @@ export async function createLinkToken(
     products: [Products.Transactions],
     country_codes: [CountryCode.Us, CountryCode.Ca],
     language: "en",
+    transactions: {
+      days_requested: 365,
+    },
   });
 
   return response.data.link_token;

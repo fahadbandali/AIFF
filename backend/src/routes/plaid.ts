@@ -231,9 +231,10 @@ router.post("/sync-transactions", async (req, res) => {
 
     const { plaid_item_id } = validationResult.data;
 
-    // Check if we synced recently (within last 5 minutes)
     const db = getDb();
     await db.read();
+
+    // Check if we synced recently (within last 5 minutes)
     const plaidItem = db.data.plaid_items.find(
       (item: any) => item.id === plaid_item_id
     );
@@ -276,10 +277,7 @@ router.post("/sync-transactions", async (req, res) => {
 
     res.status(500).json({
       error: "Failed to sync transactions",
-      message:
-        process.env.NODE_ENV === "development"
-          ? (error as Error).message
-          : undefined,
+      message: (error as Error).message,
     });
   }
 });

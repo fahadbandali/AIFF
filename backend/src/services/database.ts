@@ -535,6 +535,7 @@ export async function deleteAccount(
 
   // Check if account exists
   const accountIndex = db.data.accounts.findIndex((a) => a.id === accountId);
+  const account = db.data.accounts[accountIndex];
   if (accountIndex === -1) {
     return false;
   }
@@ -546,6 +547,15 @@ export async function deleteAccount(
   if (cascadeDelete) {
     db.data.transactions = db.data.transactions.filter(
       (t) => t.account_id !== accountId
+    );
+  }
+
+  const shouldDeletePlaidItem =
+    db.data.accounts.filter((a) => a.plaid_item_id === account.plaid_item_id)
+      .length === 1;
+  if (shouldDeletePlaidItem) {
+    db.data.plaid_items = db.data.plaid_items.filter(
+      (p) => p.id !== account.plaid_item_id
     );
   }
 
