@@ -321,7 +321,7 @@ const TransactionsByCategoryView: React.FC<TransactionsByCategoryViewProps> = ({
             <Tooltip
               formatter={(value: number) => formatCurrency(value)}
               contentStyle={{
-                backgroundColor: "hsl(var(--b1))",
+                backgroundColor: "white",
                 borderColor: "hsl(var(--bc) / 0.2)",
               }}
             />
@@ -359,7 +359,7 @@ const TransactionsByCategoryView: React.FC<TransactionsByCategoryViewProps> = ({
             <Tooltip
               formatter={(value: number) => formatCurrency(value)}
               contentStyle={{
-                backgroundColor: "hsl(var(--b1))",
+                backgroundColor: "white",
                 borderColor: "hsl(var(--bc) / 0.2)",
               }}
             />

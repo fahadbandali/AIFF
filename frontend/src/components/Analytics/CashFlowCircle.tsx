@@ -151,8 +151,6 @@ export default function CashFlowCircle({
         }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 10); // Show top 10 categories
-
-      console.log(`Category breakdown: ${chartData.length} categories found`);
     }
   }
 

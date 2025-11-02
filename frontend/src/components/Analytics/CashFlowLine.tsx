@@ -99,18 +99,7 @@ export default function CashFlowLine({
 
   // Process transactions into daily/monthly aggregates
   const processTransactions = (transactions: Transaction[]) => {
-    console.log(transactions);
     const groupBy = dateRange === "30d" ? "day" : "month";
-    //const intervals =
-    //  groupBy === "day"
-    //    ? eachDayOfInterval({
-    //        start: new Date(start + "T00:00:00.000Z"),
-    //        end: new Date(end + "T00:00:00.000Z"),
-    //      })
-    //    : eachMonthOfInterval({
-    //        start: DateTime.fromISO('2025-10-01', { zone: 'utc' }),
-    //        end: new Date(end + "T00:00:00.000Z"),
-    //      });
     const startTime = DateTime.fromISO(start, { zone: "utc" });
     const endTime = DateTime.fromISO(end, { zone: "utc" });
     const fullInterval = Interval.fromDateTimes(startTime, endTime);
@@ -120,28 +109,10 @@ export default function CashFlowLine({
         : fullInterval.splitBy({ months: 1 });
 
     return intervals.map((interval) => {
-      const intervalStart = interval.start;
-      const intervalEnd = interval.end;
-
       const intervalTransactions = transactions.filter((t) => {
         const txDate = DateTime.fromISO(t.date, { zone: "utc" });
-        console.log(t.date, txDate);
-        console.log(
-          "t",
-          t,
-          "txDate",
-          txDate,
-          "intervalStart",
-          intervalStart,
-          "intervalEnd",
-          intervalEnd,
-          "result",
-          interval.contains(txDate)
-        );
         return interval.contains(txDate);
       });
-
-      console.log(intervalTransactions);
 
       const income = intervalTransactions
         .filter((t) => t.amount < 0)
@@ -150,10 +121,6 @@ export default function CashFlowLine({
       const expenses = intervalTransactions
         .filter((t) => t.amount > 0)
         .reduce((sum, t) => sum + t.amount, 0);
-
-      console.log(income);
-      console.log(expenses);
-      console.log(interval.toFormat(groupBy === "day" ? "MM dd" : "MM yyyy"));
 
       return {
         date: interval.toFormat(groupBy === "day" ? "MM dd" : "MM yyyy"),
